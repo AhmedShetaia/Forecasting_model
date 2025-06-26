@@ -1,4 +1,4 @@
-# Time Series Forecasting Model
+# Time Series Forecasting Models
 
 This project implements several time series forecasting models to predict future stock prices for different companies.
 
