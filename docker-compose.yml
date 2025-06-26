@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  financial-forecasting:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - FRED_API_KEY=${FRED_API_KEY}
+    volumes:
+      - ./scraping/scraped_data:/app/scraping/scraped_data
+      - ./modelling/predictions:/app/modelling/predictions
+      - ./forecasting/data:/app/forecasting/data
+    restart: on-failure
+    command: ["--log-level", "INFO"]
