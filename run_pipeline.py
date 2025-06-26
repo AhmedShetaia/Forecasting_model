@@ -5,6 +5,7 @@ This script coordinates the three main components:
 1. Data scraping (from scraping/update_all.py)
 2. Modeling and prediction (from modelling/update_predictions.py)
 3. Forecasting (from forecasting/main.py)
+4. Upload results to Azure Blob Storage for easy access
 """
 
 import os
@@ -12,6 +13,7 @@ import sys
 import logging
 import argparse
 import datetime
+import glob
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -26,6 +28,13 @@ from modelling.config.constants import (
     TIMEMOE_CACHE_DIR,
     SCRAPED_DATA_DIR,
 )
+
+# Import storage utils (will be created)
+from utils.storage_utils import upload_to_blob_storage
+
+# Constants
+DEFAULT_BLOB_CONTAINER = "forecast-predictions"
+FORECASTING_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "forecasting", "data")
 
 
 def parse_args():
@@ -54,6 +63,19 @@ def parse_args():
         '--skip-forecasting',
         action='store_true',
         help='Skip the forecasting step'
+    )
+    
+    parser.add_argument(
+        '--skip-upload',
+        action='store_true',
+        help='Skip uploading results to Azure Blob Storage'
+    )
+    
+    parser.add_argument(
+        '--container-name',
+        type=str,
+        default=DEFAULT_BLOB_CONTAINER,
+        help=f'Azure Blob container name (default: {DEFAULT_BLOB_CONTAINER})'
     )
     
     parser.add_argument(
@@ -167,6 +189,64 @@ def run_forecasting():
         return False
 
 
+def find_latest_prediction_file():
+    """Find the latest next_friday_predictions JSON file.
+    
+    Returns:
+        Path to the latest prediction file, or None if not found
+    """
+    logger = logging.getLogger("pipeline.upload")
+    
+    # Search for next_friday_predictions files
+    pattern = os.path.join(FORECASTING_DATA_DIR, "next_friday_predictions_*.json")
+    files = glob.glob(pattern)
+    
+    if not files:
+        logger.warning(f"No prediction files found matching pattern: {pattern}")
+        return None
+    
+    # Sort by modification time (newest first)
+    latest_file = max(files, key=os.path.getmtime)
+    logger.info(f"Found latest prediction file: {latest_file}")
+    
+    return latest_file
+
+
+def upload_results_to_blob(container_name):
+    """Upload forecasting results to Azure Blob Storage.
+    
+    Args:
+        container_name: Name of the Azure Blob container
+        
+    Returns:
+        URL of the uploaded blob, or None if upload failed
+    """
+    logger = logging.getLogger("pipeline.upload")
+    logger.info("Starting upload of results to Azure Blob Storage")
+    
+    try:
+        # Find the latest prediction file
+        latest_file = find_latest_prediction_file()
+        
+        if not latest_file:
+            logger.warning("No prediction file found to upload")
+            return None
+        
+        # Upload the file
+        blob_url = upload_to_blob_storage(latest_file, container_name)
+        
+        if blob_url:
+            logger.info(f"Prediction file uploaded successfully to {blob_url}")
+            return blob_url
+        else:
+            logger.error("Failed to upload prediction file")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error uploading results: {str(e)}", exc_info=True)
+        return None
+
+
 def main():
     """Main function to run the complete pipeline."""
     # Parse command line arguments
@@ -210,6 +290,17 @@ def main():
             pipeline_success = False
     else:
         logger.info("Skipping forecasting step as requested")
+    
+    # Upload results to Azure Blob Storage if not skipped
+    if not args.skip_upload:
+        blob_url = upload_results_to_blob(args.container_name)
+        if blob_url:
+            logger.info(f"Prediction results available at: {blob_url}")
+        else:
+            logger.warning("Failed to upload results to Azure Blob Storage")
+            pipeline_success = False
+    else:
+        logger.info("Skipping upload step as requested")
     
     # Report final status
     if pipeline_success:
