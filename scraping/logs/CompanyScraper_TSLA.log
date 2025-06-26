@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,539 - CompanyScraper_TSLA - INFO - Attempting to update data for TSLA
+2025-06-25 06:37:03,540 - CompanyScraper_TSLA - INFO - Found latest data in: TSLA_20200103_20250613
+2025-06-25 06:37:03,543 - CompanyScraper_TSLA - INFO - Fetching stock data for TSLA from 2025-06-14 to 2025-06-20

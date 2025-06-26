@@ -1,0 +1,6 @@
+2025-06-25 06:27:27,900 - FileManager - INFO - Saved data to: scraped_data\AAPL_20200103_20250620\AAPL_data.csv
+2025-06-25 06:31:20,033 - FileManager - INFO - Saved data to: scraped_data\AAPL_20200103_20250620\AAPL_data.csv
+2025-06-25 06:37:03,484 - FileManager - INFO - Saved data to: scraping/scraped_data\AAPL_20200103_20250620\AAPL_data.csv
+2025-06-25 06:37:03,486 - FileManager - INFO - Successfully removed folder: AAPL_20200103_20250613
+2025-06-25 06:37:03,725 - FileManager - INFO - Saved data to: scraping/scraped_data\TSLA_20200103_20250620\TSLA_data.csv
+2025-06-25 06:37:03,726 - FileManager - INFO - Successfully removed folder: TSLA_20200103_20250613

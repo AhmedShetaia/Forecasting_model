@@ -1,0 +1,5 @@
+2025-06-25 06:27:26,527 - CompanyScraper_AAPL - INFO - Fetching stock data for AAPL from 2020-01-01 to 2025-06-20
+2025-06-25 06:31:18,936 - CompanyScraper_AAPL - INFO - Fetching stock data for AAPL from 2020-01-01 to 2025-06-20
+2025-06-25 06:37:02,657 - CompanyScraper_AAPL - INFO - Attempting to update data for AAPL
+2025-06-25 06:37:02,658 - CompanyScraper_AAPL - INFO - Found latest data in: AAPL_20200103_20250613
+2025-06-25 06:37:02,664 - CompanyScraper_AAPL - INFO - Fetching stock data for AAPL from 2025-06-14 to 2025-06-20

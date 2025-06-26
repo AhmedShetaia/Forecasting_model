@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,518 - CompanyScraper_NFLX - INFO - Attempting to update data for NFLX
+2025-06-25 06:37:03,519 - CompanyScraper_NFLX - INFO - Found latest data in: NFLX_20200103_20250620
+2025-06-25 06:37:03,524 - CompanyScraper_NFLX - INFO - Data for NFLX is already recent. No update needed.

@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,504 - CompanyScraper_META - INFO - Attempting to update data for META
+2025-06-25 06:37:03,505 - CompanyScraper_META - INFO - Found latest data in: META_20200103_20250620
+2025-06-25 06:37:03,509 - CompanyScraper_META - INFO - Data for META is already recent. No update needed.

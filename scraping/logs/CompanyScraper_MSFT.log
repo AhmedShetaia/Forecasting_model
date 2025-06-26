@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,511 - CompanyScraper_MSFT - INFO - Attempting to update data for MSFT
+2025-06-25 06:37:03,512 - CompanyScraper_MSFT - INFO - Found latest data in: MSFT_20200103_20250620
+2025-06-25 06:37:03,516 - CompanyScraper_MSFT - INFO - Data for MSFT is already recent. No update needed.

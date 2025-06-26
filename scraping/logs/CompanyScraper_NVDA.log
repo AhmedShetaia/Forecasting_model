@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,526 - CompanyScraper_NVDA - INFO - Attempting to update data for NVDA
+2025-06-25 06:37:03,526 - CompanyScraper_NVDA - INFO - Found latest data in: NVDA_20200103_20250620
+2025-06-25 06:37:03,530 - CompanyScraper_NVDA - INFO - Data for NVDA is already recent. No update needed.

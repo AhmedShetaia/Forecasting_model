@@ -1,0 +1,3 @@
+2025-06-25 06:37:02,644 - MarketScraper_market - INFO - Attempting to update data for market
+2025-06-25 06:37:02,645 - MarketScraper_market - INFO - Found latest data in: market_data_20200103_20250620
+2025-06-25 06:37:02,656 - MarketScraper_market - INFO - Data for market is already recent. No update needed.

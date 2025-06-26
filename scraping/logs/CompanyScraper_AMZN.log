@@ -1,0 +1,3 @@
+2025-06-25 06:37:03,493 - CompanyScraper_AMZN - INFO - Attempting to update data for AMZN
+2025-06-25 06:37:03,493 - CompanyScraper_AMZN - INFO - Found latest data in: AMZN_20200103_20250620
+2025-06-25 06:37:03,497 - CompanyScraper_AMZN - INFO - Data for AMZN is already recent. No update needed.
