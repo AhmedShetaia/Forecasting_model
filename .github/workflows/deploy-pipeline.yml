@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: '0 21 * * 5'  # Run every Friday at 09:00 PM UTC
 
+env:
+  RESOURCE_GROUP: financial-forecasting-rg
+  STORAGE_ACCOUNT_NAME: financialforecastsa
+  FILE_SHARE_NAME: forecast-pipeline-share
+
 jobs:
   deploy-container:
     runs-on: ubuntu-latest
@@ -34,14 +39,21 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
+          # Get storage account key for file share mount
+          STORAGE_ACCOUNT_KEY=$(az storage account keys list --resource-group ${{ env.RESOURCE_GROUP }} --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --query "[0].value" -o tsv)
+          
           az container create \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
             --name financial-forecasting-${{ github.run_number }} \
             --image ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
             --registry-login-server ${{ secrets.ACR_LOGIN_SERVER }} \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --environment-variables FRED_API_KEY=${{ secrets.FRED_API_KEY }} AZURE_STORAGE_CONNECTION_STRING=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }} \
+            --azure-file-volume-account-name ${{ env.STORAGE_ACCOUNT_NAME }} \
+            --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
+            --azure-file-volume-share-name ${{ env.FILE_SHARE_NAME }} \
+            --azure-file-volume-mount-path /app \
             --cpu 2 \
             --memory 8 \
             --restart-policy Never

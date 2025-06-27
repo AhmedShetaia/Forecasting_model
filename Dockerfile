@@ -14,8 +14,11 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Create volume for persistent data storage
-VOLUME ["/app/scraping/scraped_data", "/app/modelling/predictions", "/app/forecasting/data"]
+# Ensure directories exist for Azure File Share mount points
+RUN mkdir -p /app/scraping/scraped_data \
+    /app/modelling/predictions \
+    /app/modelling/cache \
+    /app/forecasting/data
 
 # Default command to run the pipeline
 ENTRYPOINT ["python", "run_pipeline.py"]

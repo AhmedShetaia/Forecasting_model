@@ -6,6 +6,7 @@ set RESOURCE_GROUP=financial-forecasting-rg
 set LOCATION=eastus
 set STORAGE_ACCOUNT_NAME=financialforecastsa
 set CONTAINER_NAME=forecast-predictions
+set FILE_SHARE_NAME=forecast-pipeline-share
 set ACR_NAME=financialforecastacr
 set LOG_ANALYTICS_WORKSPACE=financial-forecast-logs
 set CONTAINER_GROUP_NAME=financial-forecast-container
@@ -81,6 +82,40 @@ az role assignment create ^
   --role "Storage Blob Data Contributor" ^
   --scope %STORAGE_ID%
 
+REM Create Azure File Share
+echo Creating Azure File Share...
+az storage share create ^
+  --name %FILE_SHARE_NAME% ^
+  --account-name %STORAGE_ACCOUNT_NAME% ^
+  --account-key %STORAGE_ACCOUNT_KEY% ^
+  --quota 100
+
+REM Create directories in the file share
+echo Creating directory structure in File Share...
+az storage directory create ^
+  --share-name %FILE_SHARE_NAME% ^
+  --name "scraping/scraped_data" ^
+  --account-name %STORAGE_ACCOUNT_NAME% ^
+  --account-key %STORAGE_ACCOUNT_KEY%
+
+az storage directory create ^
+  --share-name %FILE_SHARE_NAME% ^
+  --name "modelling/predictions" ^
+  --account-name %STORAGE_ACCOUNT_NAME% ^
+  --account-key %STORAGE_ACCOUNT_KEY%
+
+az storage directory create ^
+  --share-name %FILE_SHARE_NAME% ^
+  --name "modelling/cache" ^
+  --account-name %STORAGE_ACCOUNT_NAME% ^
+  --account-key %STORAGE_ACCOUNT_KEY%
+
+az storage directory create ^
+  --share-name %FILE_SHARE_NAME% ^
+  --name "forecasting/data" ^
+  --account-name %STORAGE_ACCOUNT_NAME% ^
+  --account-key %STORAGE_ACCOUNT_KEY%
+
 REM Display summary
 echo.
 echo ======== Azure Resources Setup Complete ========
@@ -88,6 +123,7 @@ echo Resource Group:            %RESOURCE_GROUP%
 echo Location:                  %LOCATION%
 echo Storage Account:           %STORAGE_ACCOUNT_NAME%
 echo Blob Container:            %CONTAINER_NAME%
+echo File Share:                %FILE_SHARE_NAME%
 echo Container Registry:        %ACR_NAME%
 echo ACR Login Server:          %ACR_LOGIN_SERVER%
 echo Log Analytics Workspace:   %LOG_ANALYTICS_WORKSPACE%
