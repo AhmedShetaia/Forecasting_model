@@ -207,6 +207,10 @@ class DataProcessor:
         
         # Optionally save the output
         if save_output:
+            # Clean up old combined_data files before saving new one
+            from ..utils.file_utils import clean_old_files
+            clean_old_files(self.output_path, "combined_data_until_*.csv")
+            
             second_latest_date = self._get_second_latest_date(final_data)
             output_filename = f"combined_data_until_{second_latest_date}.csv"
             # Use the output_path from constructor, which in main.py is now set to input_dir

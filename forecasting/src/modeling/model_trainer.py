@@ -96,6 +96,22 @@ class ModelTrainer:
             df = pd.read_csv(data_file)
             logger.info(f"Loaded data from {data_file}, shape: {df.shape}")
             
+            # Forward fill specific columns if they have NaN values
+            columns_to_ffill = ['CPI', 'UnemploymentRate', 'FEDFUNDS', 'DFF', 'GDP']
+            existing_columns = [col for col in columns_to_ffill if col in df.columns]
+            
+            if existing_columns:
+                # Check if any of the columns have NaN values
+                has_nan = df[existing_columns].isna().any().any()
+                if has_nan:
+                    logger.info(f"Forward filling NaN values in columns: {existing_columns}")
+                    df[existing_columns] = df[existing_columns].fillna(method='ffill')
+                    logger.info(f"Forward fill completed for {existing_columns}")
+                else:
+                    logger.info(f"No NaN values found in {existing_columns}")
+            else:
+                logger.info("None of the specified ffill columns found in data")
+            
             # Split into training and test data
             test = df[df["actual"].isna()]
             train = df.dropna()
