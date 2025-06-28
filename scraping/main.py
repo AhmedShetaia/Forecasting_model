@@ -110,7 +110,7 @@ def main():
     """Main function for command-line usage."""
     # Load environment variables
     load_dotenv()
-    fred_api_key = os.getenv("FRED_API_KEY", "2ef79a6ddee11df7569ab749765d363b")
+    fred_api_key = os.getenv("FRED_API_KEY")
     
     # Initialize orchestrator
     orchestrator = ScraperOrchestrator(fred_api_key)
