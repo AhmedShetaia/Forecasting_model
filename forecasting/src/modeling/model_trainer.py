@@ -249,15 +249,20 @@ class ModelTrainer:
         # Clean up old prediction files
         clean_old_files(self.output_dir, PREDICTIONS_PATTERN)
         
-        # Create predictions dictionary
-        pred_dict = dict(zip(test_df['ticker'], test_df['prediction']))
+        # Get next Friday date
+        next_friday = get_next_friday()
+        
+        # Create predictions dictionary with date at the beginning
+        pred_dict = {
+            "prediction_date": next_friday,
+            "predictions": dict(zip(test_df['ticker'], test_df['prediction']))
+        }
         
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # Save predictions to JSON
-        next_friday = get_next_friday()
-        json_path = os.path.join(self.output_dir, f"next_friday_predictions_{next_friday}.json")
+        # Save predictions to JSON with simplified filename
+        json_path = os.path.join(self.output_dir, "next_friday_predictions.json")
         
         with open(json_path, 'w') as f:
             json.dump(pred_dict, f, indent=2)

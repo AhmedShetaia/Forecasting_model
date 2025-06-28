@@ -15,7 +15,7 @@ DEFAULT_PREDICTIONS_DIR = "modelling/predictions/"
 
 # File Patterns
 COMBINED_DATA_PATTERN = "combined_data_until_*.csv"
-PREDICTIONS_PATTERN = "next_friday_predictions_*.json"
+PREDICTIONS_PATTERN = "next_friday_predictions.json"
 MARKET_DATA_DIR_PATTERN = "market_data_*"  # Pattern to match market_data_YYYYMMDD_YYYYMMDD directories
 MARKET_DATA_FILENAME = "market_data.csv"   # Standard filename for market data
 

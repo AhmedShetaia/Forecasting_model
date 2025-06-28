@@ -197,10 +197,16 @@ def run_forecasting():
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'forecasting'))
         import forecasting.main as forecasting_main
         
-        # Run forecasting main function
-        forecasting_main.main()
+        # Use the data directory from forecasting constants
+        forecasting_data_dir = os.path.join(os.path.dirname(__file__), 'forecasting', 'data')
         
-        logger.info("Forecasting completed successfully")
+        # Run forecasting pipeline function directly
+        predictions_path = forecasting_main.run_forecasting_pipeline(
+            data_dir=forecasting_data_dir,
+            log_level="INFO"
+        )
+        
+        logger.info(f"Forecasting completed successfully. Predictions saved to: {predictions_path}")
         return True
     except Exception as e:
         logger.error(f"Error in forecasting step: {str(e)}", exc_info=True)
@@ -208,26 +214,22 @@ def run_forecasting():
 
 
 def find_latest_prediction_file():
-    """Find the latest next_friday_predictions JSON file.
+    """Find the next_friday_predictions JSON file.
     
     Returns:
-        Path to the latest prediction file, or None if not found
+        Path to the prediction file, or None if not found
     """
     logger = logging.getLogger("pipeline.upload")
     
-    # Search for next_friday_predictions files
-    pattern = os.path.join(FORECASTING_DATA_DIR, "next_friday_predictions_*.json")
-    files = glob.glob(pattern)
+    # Search for the simplified prediction file
+    prediction_file = os.path.join(FORECASTING_DATA_DIR, "next_friday_predictions.json")
     
-    if not files:
-        logger.warning(f"No prediction files found matching pattern: {pattern}")
+    if not os.path.exists(prediction_file):
+        logger.warning(f"Prediction file not found: {prediction_file}")
         return None
     
-    # Sort by modification time (newest first)
-    latest_file = max(files, key=os.path.getmtime)
-    logger.info(f"Found latest prediction file: {latest_file}")
-    
-    return latest_file
+    logger.info(f"Found prediction file: {prediction_file}")
+    return prediction_file
 
 
 def upload_results_to_blob(container_name):

@@ -51,6 +51,9 @@ class DataProcessor:
         # Select only close price and resample
         weekly_df = df[[close_column]].resample(WEEKLY_FREQUENCY).agg(method)
         
+        # Forward fill missing values after resampling
+        weekly_df = weekly_df.ffill()
+        
         # Reset index and rename columns
         weekly_df = weekly_df.reset_index()
         weekly_df = weekly_df.rename(columns={close_column: WEEKLY_CLOSE_COLUMN})
@@ -177,6 +180,6 @@ class DataProcessor:
             result = pd.merge(result, df, on=on_column, how=how)
         
         # Sort by the merge column and forward fill missing values
-        result = result.sort_values(on_column).fillna(method='ffill')
+        result = result.sort_values(on_column).ffill()
         
         return result.reset_index(drop=True)

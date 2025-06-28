@@ -69,30 +69,20 @@ def parse_args() -> argparse.Namespace:
         help=f'Directory for input/output data files (default: {DEFAULT_DATA_DIR})'
     )
     
-    parser.add_argument(
-        '--input-dir',
-        dest='input_dir',
-        default=None,
-        help=f'Optional: Specific input directory (if different from data-dir, default: {DEFAULT_INPUT_DIR})'
-    )
     return parser.parse_args()
 
-def run_data_preparation(input_dir: str, output_dir: str, data_dir: str) -> str:
+def run_data_preparation(data_dir: str) -> str:
     """
     Run the data preparation process.
     
     Args:
-        input_dir: Directory containing input data
-        output_dir: Directory to save prediction output files
         data_dir: Parent data directory where combined data will be saved
         
     Returns:
         Path to the prepared data file
     """
     
-    # Ensure directories exist
-    os.makedirs(input_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
+    # Ensure data directory exists
     os.makedirs(data_dir, exist_ok=True)
     
     # Create data processor and prepare data with data_dir as output path
@@ -114,13 +104,11 @@ def run_data_preparation(input_dir: str, output_dir: str, data_dir: str) -> str:
     
     return output_path
 
-def run_model_training(input_dir: str, output_dir: str, data_dir: str) -> tuple[str, str]:
+def run_model_training(data_dir: str) -> tuple[str, str]:
     """
     Run the model training process.
     
     Args:
-        input_dir: Directory containing input data files
-        output_dir: Directory to save prediction output files
         data_dir: Parent data directory where predictions will be saved
         
     Returns:
@@ -150,29 +138,16 @@ def main() -> None:
     
     # Normalize and standardize directory paths
     data_dir = os.path.abspath(args.data_dir)
-    # If data_dir points to input dir, get its parent to use as data_dir
-    if data_dir.endswith('input'):
-        data_dir = os.path.dirname(data_dir)
     
-    input_dir = os.path.join(data_dir, 'input')
-    output_dir = os.path.join(data_dir, 'output')
-    
-    if args.input_dir:
-        input_dir = os.path.abspath(args.input_dir)
-    
-    # Ensure directories exist
+    # Ensure data directory exists
     os.makedirs(data_dir, exist_ok=True)
-    os.makedirs(input_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
     
     logger.info(f"Using data directory: {data_dir}")
-    logger.info(f"Using input directory: {input_dir}")
-    logger.info(f"Using output directory: {output_dir}")
     
     # Run data preparation if not skipped
     if not args.skip_data_prep:
         # Combined data is saved to data_dir to be used for model training
-        data_path = run_data_preparation(input_dir=input_dir, output_dir=output_dir, data_dir=data_dir)
+        data_path = run_data_preparation(data_dir=data_dir)
         logger.info(f"Data preparation complete, combined data saved to: {data_path}")
     else:
         logger.info("Skipping data preparation step...")
@@ -180,11 +155,51 @@ def main() -> None:
     # Run model training if not skipped
     if not args.skip_training:
         # Combined data file from data_dir is used as input, and predictions are saved to data_dir
-        predictions_path, best_model = run_model_training(input_dir=input_dir, output_dir=output_dir, data_dir=data_dir)
+        predictions_path, best_model = run_model_training(data_dir=data_dir)
     else:
         logger.info("Skipping model training step...")
     
     logger.info("Forecasting pipeline completed successfully!")
+
+def run_forecasting_pipeline(data_dir: str = None, log_level: str = "INFO") -> str:
+    """
+    Simple function to run the forecasting pipeline without argument parsing.
+    Can be called directly from other scripts.
+    
+    Args:
+        data_dir: Directory for input/output data files
+        log_level: Logging level
+        
+    Returns:
+        Path to the predictions file
+    """
+    # Configure logging
+    configure_logging(log_level)
+    
+    logger.info("Starting forecasting pipeline...")
+    
+    # Use default data directory if not provided
+    if data_dir is None:
+        data_dir = DEFAULT_DATA_DIR
+    
+    # Normalize directory path
+    data_dir = os.path.abspath(data_dir)
+    
+    # Ensure data directory exists
+    os.makedirs(data_dir, exist_ok=True)
+    
+    logger.info(f"Using data directory: {data_dir}")
+    
+    # Run data preparation
+    data_path = run_data_preparation(data_dir=data_dir)
+    logger.info(f"Data preparation complete, combined data saved to: {data_path}")
+    
+    # Run model training
+    predictions_path, best_model = run_model_training(data_dir=data_dir)
+    logger.info(f"Model training complete, predictions saved to: {predictions_path}")
+    
+    logger.info("Forecasting pipeline completed successfully!")
+    return predictions_path
 
 if __name__ == "__main__":
     main()
