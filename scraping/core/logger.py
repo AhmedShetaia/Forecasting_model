@@ -26,6 +26,9 @@ class ScraperLogger:
         # Only configure logger if it hasn't been configured already
         if not logger.handlers:
             logger.setLevel(log_level)
+            
+            # Prevent propagation to avoid duplicate messages
+            logger.propagate = False
 
             # Create formatter
             formatter = logging.Formatter(

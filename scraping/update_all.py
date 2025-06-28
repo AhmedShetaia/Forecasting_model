@@ -3,12 +3,16 @@ Update script for refreshing existing financial data.
 """
 import os
 import re
+import sys
 from typing import Set
 from dotenv import load_dotenv
 
-from .constants import OUTPUT_DIR, DEFAULT_START_DATE
-from .scrapers import CompanyScraper, MarketScraper
-from .core.logger import ScraperLogger
+# Add the parent directory to the path for absolute imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scraping.constants import OUTPUT_DIR, DEFAULT_START_DATE
+from scraping.scrapers import CompanyScraper, MarketScraper
+from scraping.core.logger import ScraperLogger
 
 
 class DataUpdater:

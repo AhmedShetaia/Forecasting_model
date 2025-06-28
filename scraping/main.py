@@ -2,12 +2,16 @@
 Main script for running financial data scrapers.
 """
 import os
+import sys
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from .constants import DEFAULT_START_DATE, DEFAULT_TICKERS
-from scrapers import CompanyScraper, MarketScraper
-from core.logger import setup_logging
+# Add the parent directory to the path for absolute imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scraping.constants import DEFAULT_START_DATE, DEFAULT_TICKERS
+from scraping.scrapers import CompanyScraper, MarketScraper
+from scraping.core.logger import setup_logging
 
 
 class ScraperOrchestrator:

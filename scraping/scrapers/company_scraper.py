@@ -33,7 +33,7 @@ class CompanyScraper(BaseScraper):
             DataFrame with stock price data
         """
         # Import here to avoid circular imports
-        from core.date_utils import get_last_trading_friday
+        from scraping.core.date_utils import get_last_trading_friday
         
         # Use safe end date if not provided
         if end_date is None:

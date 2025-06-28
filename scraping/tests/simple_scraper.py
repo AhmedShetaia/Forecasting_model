@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 import os
 from constants import DEFAULT_TICKERS, DEFAULT_START_DATE
-from main_refactored import ScraperOrchestrator
-from core.date_utils import get_last_trading_friday
+from main import ScraperOrchestrator
+from scraping.core.date_utils import get_last_trading_friday
 
 # Get safe end date (last trading Friday)
 safe_end_date = get_last_trading_friday()

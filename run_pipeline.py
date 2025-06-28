@@ -97,13 +97,19 @@ def configure_logging(log_level):
     """
     level = getattr(logging, log_level.upper(), logging.INFO)
     
+    # Get the root logger and clear any existing handlers to avoid duplication
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    
+    # Configure logging with a single handler
     logging.basicConfig(
         level=level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(),
             logging.FileHandler(f"pipeline_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
-        ]
+        ],
+        force=True  # Force reconfiguration
     )
 
 
@@ -143,11 +149,11 @@ def run_modeling():
         # Import here to avoid circular imports
         import modelling.update_predictions as update_predictions
         
-        # Parse arguments with defaults
+        # Create arguments object manually instead of parsing command line
         class Args:
-            pred_dir = PREDICTIONS_DIR
-            scraped_folder = SCRAPED_DATA_DIR
-            cache_dir = TIMEMOE_CACHE_DIR
+            pred_dir = str(PREDICTIONS_DIR)
+            scraped_folder = str(SCRAPED_DATA_DIR)
+            cache_dir = str(TIMEMOE_CACHE_DIR)
             ticker = None
             single_file = None
             log_level = logging.getLogger().level
@@ -155,12 +161,24 @@ def run_modeling():
         args = Args()
         
         # Configure update predictions logging
-        log_level = update_predictions.configure_logging(
-            logging.getLevelName(logging.getLogger().level)
-        )
+        log_level = update_predictions.configure_logging('INFO')
+        mod_logger = logging.getLogger('modelling.update_predictions')
         
-        # Run update predictions main function
-        update_predictions.main()
+        # Call the update process directly without parsing arguments
+        from pathlib import Path
+        
+        # Handle prediction file updates
+        pred_dir = Path(args.pred_dir)
+        if pred_dir.exists():
+            # Process each prediction file
+            for csv_path in sorted(pred_dir.glob('model_predictions_*.csv')):
+                try:
+                    update_predictions.update_predictions_file(str(csv_path), args, log_level)
+                except Exception as e:
+                    mod_logger.error(f"Error updating {csv_path}: {e}", exc_info=True)
+                    # Continue with other files
+        else:
+            mod_logger.info(f"Prediction directory {pred_dir} does not exist yet - skipping modeling step")
         
         logger.info("Modeling and prediction completed successfully")
         return True

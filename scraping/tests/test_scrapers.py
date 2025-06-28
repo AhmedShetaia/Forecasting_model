@@ -8,8 +8,8 @@ import pandas as pd
 from datetime import datetime
 
 from scrapers.company_scraper import CompanyScraper
-from core.data_processor import DataProcessor
-from core.file_manager import FileManager
+from scraping.core.data_processor import DataProcessor
+from scraping.core.file_manager import FileManager
 
 
 class TestCompanyScraper(unittest.TestCase):
