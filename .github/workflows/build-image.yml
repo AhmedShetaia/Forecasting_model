@@ -1,0 +1,49 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Login to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+        
+    - name: Build and push Docker image
+      run: |
+        # Use commit SHA for versioning
+        IMAGE_TAG="${{ github.sha }}"
+        SHORT_SHA="${{ github.sha }}"
+        SHORT_SHA=${SHORT_SHA:0:7}
+        
+        echo "Building image with tags:"
+        echo "  - Full SHA: $IMAGE_TAG"
+        echo "  - Short SHA: $SHORT_SHA"
+        echo "  - Latest: latest"
+        
+        # Build images with multiple tags
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$IMAGE_TAG .
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$SHORT_SHA .
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
+        
+        echo "Pushing images to registry..."
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$IMAGE_TAG
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$SHORT_SHA
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest
+        
+        echo "✅ Images pushed successfully!"
+        echo "📦 Available tags:"
+        echo "  - ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$IMAGE_TAG"
+        echo "  - ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:$SHORT_SHA"
+        echo "  - ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest"
