@@ -63,6 +63,7 @@ jobs:
             --registry-login-server ${{ secrets.ACR_LOGIN_SERVER }} \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --os-type Linux \
             --environment-variables \
               FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
               AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
