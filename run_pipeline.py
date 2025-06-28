@@ -101,14 +101,23 @@ def configure_logging(log_level):
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
     
-    # Configure logging with a single handler
+    # Create handlers list
+    handlers = [logging.StreamHandler()]
+    
+    # Try to add file handler, but don't fail if we can't write to disk
+    try:
+        log_file = f"pipeline_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        handlers.append(logging.FileHandler(log_file))
+        print(f"Logging to file: {log_file}")
+    except Exception as e:
+        print(f"Warning: Could not create log file: {e}")
+        print("Continuing with console logging only")
+    
+    # Configure logging with available handlers
     logging.basicConfig(
         level=level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(f"pipeline_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
-        ],
+        handlers=handlers,
         force=True  # Force reconfiguration
     )
 
@@ -269,66 +278,125 @@ def upload_results_to_blob(container_name):
 
 def main():
     """Main function to run the complete pipeline."""
-    # Parse command line arguments
-    args = parse_args()
-    
-    # Load environment variables from .env file if it exists
-    load_dotenv()
-    
-    # Configure logging
-    configure_logging(args.log_level)
-    logger = logging.getLogger("pipeline")
-    
-    logger.info("Starting financial data processing pipeline")
-    
-    # Track overall pipeline success
-    pipeline_success = True
-    
-    # Run the scraping step if not skipped
-    if not args.skip_scraping:
-        scraping_success = run_scraping()
-        if not scraping_success:
-            logger.warning("Scraping step failed, but continuing with pipeline")
-            pipeline_success = False
-    else:
-        logger.info("Skipping scraping step as requested")
-    
-    # Run the modeling step if not skipped
-    if not args.skip_modeling:
-        modeling_success = run_modeling()
-        if not modeling_success:
-            logger.warning("Modeling step failed, but continuing with pipeline")
-            pipeline_success = False
-    else:
-        logger.info("Skipping modeling step as requested")
-    
-    # Run the forecasting step if not skipped
-    if not args.skip_forecasting:
-        forecasting_success = run_forecasting()
-        if not forecasting_success:
-            logger.warning("Forecasting step failed")
-            pipeline_success = False
-    else:
-        logger.info("Skipping forecasting step as requested")
-    
-    # Upload results to Azure Blob Storage if not skipped
-    if not args.skip_upload:
-        blob_url = upload_results_to_blob(args.container_name)
-        if blob_url:
-            logger.info(f"Prediction results available at: {blob_url}")
+    try:
+        # Parse command line arguments
+        args = parse_args()
+        
+        # Load environment variables from .env file if it exists
+        load_dotenv()
+        
+        # Configure logging
+        configure_logging(args.log_level)
+        logger = logging.getLogger("pipeline")
+        
+        logger.info("Starting financial data processing pipeline")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"Working directory: {os.getcwd()}")
+        logger.info(f"Arguments: {args}")
+        
+        # Check required environment variables
+        required_env_vars = ["FRED_API_KEY", "AZURE_STORAGE_CONNECTION_STRING"]
+        missing_vars = []
+        for var in required_env_vars:
+            if not os.getenv(var):
+                missing_vars.append(var)
+        
+        if missing_vars:
+            logger.error(f"Missing required environment variables: {missing_vars}")
+            sys.exit(1)
+        
+        logger.info("Environment variables check passed")
+        
+        # Track overall pipeline success
+        pipeline_success = True
+        
+        # Run the scraping step if not skipped
+        if not args.skip_scraping:
+            logger.info("Starting scraping step...")
+            scraping_success = run_scraping()
+            if not scraping_success:
+                logger.warning("Scraping step failed, but continuing with pipeline")
+                pipeline_success = False
         else:
-            logger.warning("Failed to upload results to Azure Blob Storage")
-            pipeline_success = False
-    else:
-        logger.info("Skipping upload step as requested")
-    
-    # Report final status
-    if pipeline_success:
-        logger.info("Pipeline completed successfully")
-    else:
-        logger.warning("Pipeline completed with errors")
+            logger.info("Skipping scraping step as requested")
+        
+        # Run the modeling step if not skipped
+        if not args.skip_modeling:
+            logger.info("Starting modeling step...")
+            modeling_success = run_modeling()
+            if not modeling_success:
+                logger.warning("Modeling step failed, but continuing with pipeline")
+                pipeline_success = False
+        else:
+            logger.info("Skipping modeling step as requested")
+        
+        # Run the forecasting step if not skipped
+        if not args.skip_forecasting:
+            logger.info("Starting forecasting step...")
+            forecasting_success = run_forecasting()
+            if not forecasting_success:
+                logger.warning("Forecasting step failed")
+                pipeline_success = False
+        else:
+            logger.info("Skipping forecasting step as requested")
+        
+        # Upload results to Azure Blob Storage if not skipped
+        if not args.skip_upload:
+            logger.info("Starting upload step...")
+            blob_url = upload_results_to_blob(args.container_name)
+            if blob_url:
+                logger.info(f"Prediction results available at: {blob_url}")
+            else:
+                logger.warning("Failed to upload results to Azure Blob Storage")
+                pipeline_success = False
+        else:
+            logger.info("Skipping upload step as requested")
+        
+        # Report final status
+        if pipeline_success:
+            logger.info("Pipeline completed successfully")
+        else:
+            logger.warning("Pipeline completed with errors")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"CRITICAL ERROR in main pipeline: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    # Add early error detection
+    try:
+        print("Starting pipeline initialization...")
+        print(f"Python executable: {sys.executable}")
+        print(f"Python version: {sys.version}")
+        print(f"Working directory: {os.getcwd()}")
+        print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
+        
+        # Test critical imports early
+        print("Testing critical imports...")
+        import pandas as pd
+        print(f"pandas version: {pd.__version__}")
+        
+        import numpy as np
+        print(f"numpy version: {np.__version__}")
+        
+        # Test Azure imports
+        try:
+            from azure.storage.blob import BlobServiceClient
+            print("Azure blob storage import: OK")
+        except ImportError as e:
+            print(f"Azure blob storage import failed: {e}")
+        
+        print("All critical imports successful")
+        print("Proceeding to main pipeline...")
+        
+        main()
+        
+    except Exception as e:
+        print(f"FATAL ERROR during initialization: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

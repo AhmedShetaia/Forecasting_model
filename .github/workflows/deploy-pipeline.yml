@@ -64,6 +64,7 @@ jobs:
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --os-type Linux \
+            --command-line "python test_container.py" \
             --environment-variables \
               FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
               AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
@@ -82,6 +83,11 @@ jobs:
           while true; do
             STATE=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
             echo "Container state: $STATE"
+            
+            # Try to get logs even during execution
+            echo "Current container logs:"
+            az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "No logs available yet"
+            
             if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
               break
             fi
@@ -89,8 +95,12 @@ jobs:
           done
           
           echo "Container completed with state: $STATE"
-          echo "Container logs:"
-          az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME"
+          echo "Final container logs:"
+          az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "Failed to retrieve logs"
+          
+          # Get detailed container information for debugging
+          echo "Container details:"
+          az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "containers[0].instanceView" || echo "Failed to get container details"
           
           echo "Cleaning up container..."
           az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --yes
