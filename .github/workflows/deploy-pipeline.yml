@@ -78,7 +78,6 @@ jobs:
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --os-type Linux \
-            --command-line "python test_container.py" \
             --environment-variables \
               FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
               AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
