@@ -5,7 +5,7 @@ import pandas as pd
 from typing import Dict, Optional
 import warnings
 
-from constants import (
+from ..constants import (
     WEEKLY_FREQUENCY, DATE_COLUMN, WEEKLY_CLOSE_COLUMN, 
     DEFAULT_RESAMPLE_METHOD, MARKET_INDEXES
 )

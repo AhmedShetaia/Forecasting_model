@@ -6,9 +6,9 @@ import re
 from typing import Set
 from dotenv import load_dotenv
 
-from constants import OUTPUT_DIR, DEFAULT_START_DATE
-from scrapers import CompanyScraper, MarketScraper
-from core.logger import ScraperLogger
+from .constants import OUTPUT_DIR, DEFAULT_START_DATE
+from .scrapers import CompanyScraper, MarketScraper
+from .core.logger import ScraperLogger
 
 
 class DataUpdater:

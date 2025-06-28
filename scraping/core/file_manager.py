@@ -8,8 +8,8 @@ from typing import List, Optional, Tuple
 from pathlib import Path
 import pandas as pd
 
-from constants import OUTPUT_DIR, FOLDER_DATE_FORMAT, OVERWRITE_CHOICE_MAP
-from core.logger import ScraperLogger
+from ..constants import OUTPUT_DIR, FOLDER_DATE_FORMAT, OVERWRITE_CHOICE_MAP
+from .logger import ScraperLogger
 
 
 class FileManager:

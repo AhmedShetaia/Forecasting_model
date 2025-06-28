@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import Optional
 
-from constants import DATE_COLUMN, DAYS_FOR_RECENT_CHECK
-from core.logger import ScraperLogger
-from core.file_manager import FileManager
-from core.data_processor import DataProcessor
+from ..constants import DATE_COLUMN, DAYS_FOR_RECENT_CHECK
+from ..core.logger import ScraperLogger
+from ..core.file_manager import FileManager
+from ..core.data_processor import DataProcessor
 
 
 class BaseScraper(ABC):

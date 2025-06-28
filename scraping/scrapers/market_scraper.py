@@ -8,9 +8,9 @@ import pandas as pd
 from functools import reduce
 from typing import Dict, Any
 
-from constants import FRED_SERIES, MARKET_INDEXES, MARKET_DATA_FILENAME
-from scrapers.base_scraper import BaseScraper
-from core.data_processor import DataProcessor
+from ..constants import FRED_SERIES, MARKET_INDEXES, MARKET_DATA_FILENAME
+from .base_scraper import BaseScraper
+from ..core.data_processor import DataProcessor
 
 # Suppress FutureWarning from fredapi
 warnings.filterwarnings("ignore", category=FutureWarning)

@@ -5,9 +5,9 @@ import yfinance as yf
 import pandas as pd
 from typing import Optional
 
-from constants import COMPANY_DATA_FILENAME, WEEKLY_CLOSE_COLUMN
-from scrapers.base_scraper import BaseScraper
-from core.data_processor import DataProcessor
+from ..constants import COMPANY_DATA_FILENAME, WEEKLY_CLOSE_COLUMN
+from .base_scraper import BaseScraper
+from ..core.data_processor import DataProcessor
 
 
 class CompanyScraper(BaseScraper):

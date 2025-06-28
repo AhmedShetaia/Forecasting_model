@@ -5,7 +5,7 @@ import os
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from constants import DEFAULT_START_DATE, DEFAULT_TICKERS
+from .constants import DEFAULT_START_DATE, DEFAULT_TICKERS
 from scrapers import CompanyScraper, MarketScraper
 from core.logger import setup_logging
 
