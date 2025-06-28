@@ -53,6 +53,20 @@ jobs:
             --account-name ${{ env.STORAGE_ACCOUNT_NAME }} \
             --query "[0].value" -o tsv)
           
+          echo "Cleaning up old containers to free quota..."
+          # Delete old forecast containers to free up quota
+          OLD_CONTAINERS=$(az container list --resource-group ${{ env.RESOURCE_GROUP }} --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv)
+          if [ ! -z "$OLD_CONTAINERS" ]; then
+            echo "Found old containers to clean up:"
+            echo "$OLD_CONTAINERS"
+            for container in $OLD_CONTAINERS; do
+              echo "Deleting container: $container"
+              az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name "$container" --yes || echo "Failed to delete $container (may not exist)"
+            done
+          else
+            echo "No old containers found"
+          fi
+          
           echo "Creating container instance..."
           CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
           
@@ -73,8 +87,8 @@ jobs:
             --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
             --azure-file-volume-share-name ${{ env.FILE_SHARE_NAME }} \
             --azure-file-volume-mount-path /mnt/fileshare \
-            --cpu 2 \
-            --memory 8 \
+            --cpu 1 \
+            --memory 4 \
             --restart-policy Never \
             --location ${{ secrets.AZURE_LOCATION }}
           
