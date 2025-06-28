@@ -78,8 +78,17 @@ jobs:
             --location ${{ secrets.AZURE_LOCATION }}
           
           echo "Waiting for container to complete..."
-          az container wait --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --condition Succeeded
+          # Wait for container to finish (polling approach)
+          while true; do
+            STATE=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
+            echo "Container state: $STATE"
+            if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
+              break
+            fi
+            sleep 30
+          done
           
+          echo "Container completed with state: $STATE"
           echo "Container logs:"
           az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME"
           
