@@ -104,13 +104,27 @@ def configure_logging(log_level):
     # Create handlers list
     handlers = [logging.StreamHandler()]
     
-    # Try to add file handler, but don't fail if we can't write to disk
+    # Try to add file handler to both local and shared storage
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file_local = f"pipeline_{timestamp}.log"
+    log_file_shared = f"/mnt/fileshare/pipeline_{timestamp}.log"
+    
+    # Try local file first
     try:
-        log_file = f"pipeline_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        handlers.append(logging.FileHandler(log_file))
-        print(f"Logging to file: {log_file}")
+        handlers.append(logging.FileHandler(log_file_local))
+        print(f"Logging to local file: {log_file_local}")
     except Exception as e:
-        print(f"Warning: Could not create log file: {e}")
+        print(f"Warning: Could not create local log file: {e}")
+    
+    # Try shared storage file
+    try:
+        os.makedirs("/mnt/fileshare", exist_ok=True)
+        handlers.append(logging.FileHandler(log_file_shared))
+        print(f"Logging to shared file: {log_file_shared}")
+    except Exception as e:
+        print(f"Warning: Could not create shared log file: {e}")
+    
+    if len(handlers) == 1:
         print("Continuing with console logging only")
     
     # Configure logging with available handlers
@@ -367,36 +381,96 @@ def main():
 
 
 if __name__ == "__main__":
-    # Add early error detection
+    # Add early error detection with file share output
+    debug_file = "/mnt/fileshare/debug_output.txt"
+    
     try:
+        # Create debug output file
+        os.makedirs("/mnt/fileshare", exist_ok=True)
+        
+        with open(debug_file, "w") as f:
+            f.write("=== PIPELINE DEBUG START ===\n")
+            f.write(f"Start time: {datetime.datetime.now()}\n")
+            f.write("Starting pipeline initialization...\n")
+            f.flush()
+        
         print("Starting pipeline initialization...")
+        print(f"Debug output will be written to: {debug_file}")
         print(f"Python executable: {sys.executable}")
         print(f"Python version: {sys.version}")
         print(f"Working directory: {os.getcwd()}")
         print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
         
+        # Append to debug file
+        with open(debug_file, "a") as f:
+            f.write(f"Python executable: {sys.executable}\n")
+            f.write(f"Python version: {sys.version}\n")
+            f.write(f"Working directory: {os.getcwd()}\n")
+            f.write(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}\n")
+            f.flush()
+        
         # Test critical imports early
         print("Testing critical imports...")
+        with open(debug_file, "a") as f:
+            f.write("Testing critical imports...\n")
+            f.flush()
+        
         import pandas as pd
         print(f"pandas version: {pd.__version__}")
+        with open(debug_file, "a") as f:
+            f.write(f"pandas version: {pd.__version__}\n")
+            f.flush()
         
         import numpy as np
         print(f"numpy version: {np.__version__}")
+        with open(debug_file, "a") as f:
+            f.write(f"numpy version: {np.__version__}\n")
+            f.flush()
         
         # Test Azure imports
         try:
             from azure.storage.blob import BlobServiceClient
             print("Azure blob storage import: OK")
+            with open(debug_file, "a") as f:
+                f.write("Azure blob storage import: OK\n")
+                f.flush()
         except ImportError as e:
             print(f"Azure blob storage import failed: {e}")
+            with open(debug_file, "a") as f:
+                f.write(f"Azure blob storage import failed: {e}\n")
+                f.flush()
         
         print("All critical imports successful")
         print("Proceeding to main pipeline...")
         
+        with open(debug_file, "a") as f:
+            f.write("All critical imports successful\n")
+            f.write("Proceeding to main pipeline...\n")
+            f.flush()
+        
         main()
         
+        with open(debug_file, "a") as f:
+            f.write("=== PIPELINE DEBUG END ===\n")
+            f.write(f"End time: {datetime.datetime.now()}\n")
+            f.flush()
+        
     except Exception as e:
-        print(f"FATAL ERROR during initialization: {str(e)}", file=sys.stderr)
+        error_msg = f"FATAL ERROR during initialization: {str(e)}"
+        print(error_msg, file=sys.stderr)
+        
+        # Write error to debug file
+        try:
+            with open(debug_file, "a") as f:
+                f.write(f"\n=== FATAL ERROR ===\n")
+                f.write(f"Error: {str(e)}\n")
+                import traceback
+                f.write(f"Traceback:\n{traceback.format_exc()}\n")
+                f.write(f"Error time: {datetime.datetime.now()}\n")
+                f.flush()
+        except:
+            pass  # Don't fail if we can't write debug file
+            
         import traceback
         traceback.print_exc()
         sys.exit(1)
