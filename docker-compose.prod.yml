@@ -1,22 +1,27 @@
+version: '3.8'
+
 services:
   financial-forecasting:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - FRED_API_KEY=2ef79a6ddee11df7569ab749765d363b
+      - FRED_API_KEY=${FRED_API_KEY}
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
       - CONTAINER_NAME=forecast-predictions
       - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT}
       - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
     volumes:
-      # Mount local file share simulation for development
-      - ./local_fileshare:/mnt/fileshare
-      # Optional: Mount logs for debugging (source code stays in container)
-      - ./logs:/app/logs
+      # Mount Azure File Share for production
+      - azure-fileshare:/mnt/fileshare
 
     restart: on-failure
     command: ["--log-level", "INFO"]
 
-# For local development, we use direct directory mounts instead of named volumes
-# For production, replace with Azure File Share volume configuration
+volumes:
+  azure-fileshare:
+    driver: azure_file
+    driver_opts:
+      share_name: forecast-pipeline-share
+      storage_account_name: forecastsa070369
+      storage_account_key: ${AZURE_STORAGE_KEY}

@@ -1,0 +1,54 @@
+name: Validate Symlinks Implementation
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-symlinks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Test Docker build
+      run: |
+        echo "Testing Docker build with symlinks..."
+        docker build -t forecasting-test .
+        echo "✅ Docker build successful"
+        
+    - name: Test symlink script
+      run: |
+        echo "Testing symlink initialization script..."
+        
+        # Create mock file share structure
+        mkdir -p /tmp/mock_fileshare/{forecasting/data,modelling/{cache,predictions},scraping/scraped_data}
+        
+        # Test the script with mock environment
+        export AFS_BASE="/tmp/mock_fileshare"
+        export APP_BASE="/tmp/mock_app"
+        mkdir -p $APP_BASE/{forecasting,modelling,scraping}
+        
+        # Run the symlink script
+        bash scripts/init_data_symlinks.sh
+        
+        # Verify symlinks were created
+        if [ -L "$APP_BASE/forecasting/data" ] && [ -L "$APP_BASE/modelling/cache" ] && [ -L "$APP_BASE/modelling/predictions" ] && [ -L "$APP_BASE/scraping/scraped_data" ]; then
+          echo "✅ All symlinks created successfully"
+        else
+          echo "❌ Symlink creation failed"
+          exit 1
+        fi
+        
+    - name: Test local compose validation
+      run: |
+        echo "Testing Docker Compose configuration..."
+        
+        # Create local file share structure  
+        mkdir -p local_fileshare/{forecasting/data,modelling/{cache,predictions},scraping/scraped_data}
+        
+        # Validate compose file syntax
+        docker-compose config > /dev/null
+        echo "✅ Docker Compose configuration valid"

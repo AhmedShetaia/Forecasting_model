@@ -94,31 +94,24 @@ jobs:
           az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "containers[0].instanceView" || echo "Failed to get container details"
           
           # Check for debug output in file share
-          echo "Checking for debug output in file share..."
+          echo "Checking for pipeline results in file share..."
           az storage file list --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --output table || echo "Failed to list files in share"
           
-          # Try to download and display debug file
-          echo "Attempting to download debug file..."
-          az storage file download --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --path debug_output.txt --dest ./debug_output.txt || echo "No debug file found"
+          # Download the latest pipeline log
+          echo "Attempting to download latest pipeline log..."
+          LATEST_LOG=$(az storage file list --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --query "[?starts_with(name, 'pipeline_')].name" -o tsv | head -1)
           
-          if [ -f ./debug_output.txt ]; then
-            echo "=== DEBUG OUTPUT FROM CONTAINER ==="
-            cat ./debug_output.txt
-            echo "=== END DEBUG OUTPUT ==="
+          if [ ! -z "$LATEST_LOG" ]; then
+            echo "Found log file: $LATEST_LOG"
+            az storage file download --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --path "$LATEST_LOG" --dest ./pipeline.log || echo "Failed to download log"
+            
+            if [ -f ./pipeline.log ]; then
+              echo "=== PIPELINE LOG ==="
+              cat ./pipeline.log
+              echo "=== END LOG ==="
+            fi
           else
-            echo "No debug output file available"
-          fi
-          
-          # Also try to download the pipeline log file
-          echo "Attempting to download pipeline log file..."
-          az storage file download --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --path pipeline_20250628_213621.log --dest ./pipeline.log || echo "No pipeline log found"
-          
-          if [ -f ./pipeline.log ]; then
-            echo "=== PIPELINE LOG FROM CONTAINER ==="
-            cat ./pipeline.log
-            echo "=== END PIPELINE LOG ==="
-          else
-            echo "No pipeline log file available"
+            echo "No pipeline log found"
           fi
           
           echo "Cleaning up container..."

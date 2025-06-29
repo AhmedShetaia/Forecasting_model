@@ -4,6 +4,19 @@ cache/
 .venv
 __pycache__
 
+# Local file share simulation (keep structure, ignore data)
+local_fileshare/*/
+!local_fileshare/
+!local_fileshare/*/
+!local_fileshare/*/*/
+!local_fileshare/*/*/*/
+
+# Logs
+logs/
+*.log
+debug_output.txt
+pipeline.log
+
 # Python
 *.py[cod]
 *$py.class
@@ -50,3 +63,7 @@ venv.bak/
 *.onnx
 model_checkpoints/
 trained_models/
+local_*/
+
+# Backup files
+run_pipeline_old.py
