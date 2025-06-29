@@ -3,12 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
       - FRED_API_KEY=${FRED_API_KEY}
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
-      - CONTAINER_NAME=forecast-predictions
+      - CONTAINER_NAME=${CONTAINER_NAME:-forecast-predictions}
       - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT}
       - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PYTHON_ENV=${PYTHON_ENV:-development}
     volumes:
       # Mount local file share simulation for development
       - ./local_fileshare:/mnt/fileshare

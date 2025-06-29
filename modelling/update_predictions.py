@@ -227,10 +227,11 @@ def update_predictions_file(pred_file, args, log_level):
     return new_path
 
 
-def main():
+def main(args=None):
     """Main function to update prediction files."""
     # Parse arguments
-    args = parse_arguments()
+    if args is None:
+        args = parse_arguments()
     
     # Configure logging
     log_level = configure_logging(args.log_level)

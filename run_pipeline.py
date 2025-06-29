@@ -46,6 +46,9 @@ def parse_args():
     Returns:
         Parsed arguments
     """
+    # Load environment variables first
+    load_dotenv()
+    
     parser = argparse.ArgumentParser(
         description='Run the complete financial data pipeline: scraping, modeling, and forecasting'
     )
@@ -77,14 +80,14 @@ def parse_args():
     parser.add_argument(
         '--container-name',
         type=str,
-        default=DEFAULT_BLOB_CONTAINER,
-        help=f'Azure Blob container name (default: {DEFAULT_BLOB_CONTAINER})'
+        default=os.getenv('CONTAINER_NAME', DEFAULT_BLOB_CONTAINER),
+        help=f'Azure Blob container name (default: {os.getenv("CONTAINER_NAME", DEFAULT_BLOB_CONTAINER)})'
     )
     
     parser.add_argument(
         '--log-level',
         type=str,
-        default='INFO',
+        default=os.getenv('LOG_LEVEL', 'INFO'),
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help='Set the logging level'
     )
@@ -199,7 +202,7 @@ def run_modeling():
                 self.cache_dir = str(CACHE_DIR)
                 self.ticker = None
                 self.single_file = None
-                self.log_level = logging.getLogger().level
+                self.log_level = 'INFO'
         
         args = Args()
         
@@ -400,11 +403,8 @@ def verify_symlinks():
 def main():
     """Main function to run the complete pipeline."""
     try:
-        # Parse command line arguments
+        # Parse command line arguments (this also loads .env file)
         args = parse_args()
-        
-        # Load environment variables from .env file if it exists
-        load_dotenv()
         
         # Configure logging
         configure_logging(args.log_level)

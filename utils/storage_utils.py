@@ -10,7 +10,7 @@ from azure.storage.fileshare import ShareServiceClient, ShareDirectoryClient
 
 logger = logging.getLogger(__name__)
 
-def upload_to_blob_storage(file_path, container_name, blob_name=None):
+def upload_to_blob_storage(file_path, container_name, blob_name=None, connection_string=None):
     """
     Upload a file to Azure Blob Storage.
     
@@ -18,6 +18,7 @@ def upload_to_blob_storage(file_path, container_name, blob_name=None):
         file_path: Path to the local file
         container_name: Azure Storage container name
         blob_name: Name for the blob (if None, uses the file basename)
+        connection_string: Azure Storage connection string (if None, uses environment variable)
     
     Returns:
         URL of the uploaded blob, or None if upload failed
@@ -27,8 +28,9 @@ def upload_to_blob_storage(file_path, container_name, blob_name=None):
         logger.error(f"File not found: {file_path}")
         return None
     
-    # Get connection string from environment
-    connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    # Get connection string from parameter or environment
+    if not connection_string:
+        connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
     if not connection_string:
         logger.error("Missing AZURE_STORAGE_CONNECTION_STRING environment variable")
         return None
