@@ -24,7 +24,7 @@ jobs:
     - name: Run Pipeline Container
       uses: azure/CLI@v2
       with:
-        azcliversion: 2.65.0
+        azcliversion: 2.53.0
         inlineScript: |
           # Get storage key
           STORAGE_ACCOUNT_KEY=$(az storage account keys list \
