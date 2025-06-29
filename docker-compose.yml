@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - FRED_API_KEY=2ef79a6ddee11df7569ab749765d363b
+      - FRED_API_KEY=${FRED_API_KEY}
       - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
       - CONTAINER_NAME=forecast-predictions
       - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT}
