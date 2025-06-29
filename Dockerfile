@@ -4,21 +4,16 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and uv for faster package installation
+# Install system dependencies for potential compilation needs
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    curl \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && rm -rf /var/lib/apt/lists/*
 
-# Add uv to PATH
-ENV PATH="/root/.cargo/bin:$PATH"
-
-# Copy requirements and install dependencies using uv
+# Copy requirements and install dependencies
 COPY requirements.txt .
-RUN uv pip install --system --no-cache --upgrade pip setuptools wheel
-RUN uv pip install --system --no-cache -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
