@@ -12,7 +12,6 @@ from ..config.constants import (
     DEFAULT_OUTPUT_DIR, DEFAULT_PREDICTIONS_DIR,
     DATE_FORMAT, MARKET_DATA_DIR_PATTERN, MARKET_DATA_FILENAME
 )
-from ..utils.file_utils import get_file_path
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -49,20 +48,28 @@ class DataProcessor:
         Raises:
             FileNotFoundError: If predictions directory or files are not found
         """
-        try:
-            predictions_path = get_file_path(__file__, self.predictions_dir)
-            prediction_files = glob.glob(os.path.join(predictions_path, "*.csv"))
+        # Use project root instead of current file location
+        project_root = os.getcwd()
+        
+        if os.path.isabs(self.predictions_dir):
+            predictions_path = self.predictions_dir
+        else:
+            predictions_path = os.path.join(project_root, self.predictions_dir)
+        
+        predictions_path = os.path.normpath(predictions_path)
+        
+        if not os.path.exists(predictions_path):
+            logger.error(f"Predictions directory does not exist: {predictions_path}")
+            raise FileNotFoundError(f"Predictions directory not found at: {predictions_path}")
+        
+        prediction_files = glob.glob(os.path.join(predictions_path, "*.csv"))
+        
+        if not prediction_files:
+            logger.error(f"No prediction files found in {predictions_path}")
+            raise FileNotFoundError(f"No prediction files found in {predictions_path}")
             
-            if not prediction_files:
-                logger.error(f"No prediction files found in {predictions_path}")
-                raise FileNotFoundError(f"No prediction files found in {predictions_path}")
-                
-            logger.info(f"Found {len(prediction_files)} prediction files")
-            return prediction_files
-            
-        except FileNotFoundError:
-            logger.error(f"Predictions directory not found at: {self.predictions_dir}")
-            raise
+        logger.info(f"Found {len(prediction_files)} prediction files")
+        return prediction_files
     
     def _load_market_data(self) -> pd.DataFrame:
         """
@@ -76,8 +83,15 @@ class DataProcessor:
             FileNotFoundError: If market data file is not found
         """
         try:
-            # Get base market data directory
-            base_data_dir = get_file_path(__file__, self.market_data_dir)
+            # Use project root instead of current file location
+            project_root = os.getcwd()
+            
+            if os.path.isabs(self.market_data_dir):
+                base_data_dir = self.market_data_dir
+            else:
+                base_data_dir = os.path.join(project_root, self.market_data_dir)
+            
+            base_data_dir = os.path.normpath(base_data_dir)
             
             # Find all market data directories
             market_data_dirs = glob.glob(os.path.join(base_data_dir, MARKET_DATA_DIR_PATTERN))
@@ -213,7 +227,6 @@ class DataProcessor:
             
             second_latest_date = self._get_second_latest_date(final_data)
             output_filename = f"combined_data_until_{second_latest_date}.csv"
-            # Use the output_path from constructor, which in main.py is now set to input_dir
             output_file_path = os.path.join(self.output_path, output_filename)
             
             # Create directory if it doesn't exist
