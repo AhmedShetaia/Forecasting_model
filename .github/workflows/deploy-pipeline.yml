@@ -1,9 +1,9 @@
 name: Run Financial Forecasting Pipeline
 
 on:
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
   schedule:
-    - cron: '0 21 * * 5'  # Run every Friday at 09:00 PM UTC
+    - cron: '0 21 * * 5'
 
 env:
   RESOURCE_GROUP: financial-forecasting-rg
@@ -22,30 +22,22 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
     - name: Run Pipeline Container
-      uses: azure/CLI@v1
+      uses: azure/CLI@v2
       with:
+        azcliversion: 2.65.0
         inlineScript: |
-          echo "Getting storage account key..."
+          # Get storage key
           STORAGE_ACCOUNT_KEY=$(az storage account keys list \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --account-name ${{ env.STORAGE_ACCOUNT_NAME }} \
             --query "[0].value" -o tsv)
           
-          echo "Cleaning up old containers to free quota..."
-          # Delete old forecast containers to free up quota
-          OLD_CONTAINERS=$(az container list --resource-group ${{ env.RESOURCE_GROUP }} --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv)
-          if [ ! -z "$OLD_CONTAINERS" ]; then
-            echo "Found old containers to clean up:"
-            echo "$OLD_CONTAINERS"
-            for container in $OLD_CONTAINERS; do
-              echo "Deleting container: $container"
-              az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name "$container" --yes || echo "Failed to delete $container (may not exist)"
-            done
-          else
-            echo "No old containers found"
-          fi
+          # Clean up old containers
+          az container list --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv | \
+            xargs -r -I {} az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name {} --yes
           
-          echo "Creating container instance..."
+          # Create container
           CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
           
           az container create \
@@ -55,7 +47,6 @@ jobs:
             --registry-login-server ${{ secrets.ACR_LOGIN_SERVER }} \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --os-type Linux \
             --environment-variables \
               FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
               AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
@@ -64,20 +55,13 @@ jobs:
             --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
             --azure-file-volume-share-name ${{ env.FILE_SHARE_NAME }} \
             --azure-file-volume-mount-path /mnt/fileshare \
-            --cpu 1 \
-            --memory 4 \
-            --restart-policy Never \
+            --cpu 1 --memory 4 --restart-policy Never \
             --location ${{ secrets.AZURE_LOCATION }}
           
-          echo "Waiting for container to complete..."
-          # Wait for container to finish (polling approach)
+          # Wait for completion
           while true; do
             STATE=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
-            echo "Container state: $STATE"
-            
-            # Try to get logs even during execution
-            echo "Current container logs:"
-            az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "No logs available yet"
+            echo "State: $STATE"
             
             if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
               break
@@ -85,34 +69,6 @@ jobs:
             sleep 30
           done
           
-          echo "Container completed with state: $STATE"
-          echo "Final container logs:"
-          az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "Failed to retrieve logs"
-          
-          # Get detailed container information for debugging
-          echo "Container details:"
-          az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "containers[0].instanceView" || echo "Failed to get container details"
-          
-          # Check for debug output in file share
-          echo "Checking for pipeline results in file share..."
-          az storage file list --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --output table || echo "Failed to list files in share"
-          
-          # Download the latest pipeline log
-          echo "Attempting to download latest pipeline log..."
-          LATEST_LOG=$(az storage file list --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --query "[?starts_with(name, 'pipeline_')].name" -o tsv | head -1)
-          
-          if [ ! -z "$LATEST_LOG" ]; then
-            echo "Found log file: $LATEST_LOG"
-            az storage file download --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --account-key "$STORAGE_ACCOUNT_KEY" --share-name ${{ env.FILE_SHARE_NAME }} --path "$LATEST_LOG" --dest ./pipeline.log || echo "Failed to download log"
-            
-            if [ -f ./pipeline.log ]; then
-              echo "=== PIPELINE LOG ==="
-              cat ./pipeline.log
-              echo "=== END LOG ==="
-            fi
-          else
-            echo "No pipeline log found"
-          fi
-          
-          echo "Cleaning up container..."
+          # Show logs and cleanup
+          az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "No logs"
           az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --yes
