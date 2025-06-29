@@ -18,24 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY . .
 
-# Make the test script executable
-RUN chmod +x test_container.py
-
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
-
-# Ensure directories exist for data and outputs
-RUN mkdir -p /app/scraping/scraped_data \
-    /app/modelling/predictions \
-    /app/modelling/cache \
-    /app/forecasting/data \
-    /app/logs
-
-# Create a non-root user for security
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
-USER appuser
 
 # Default command to run the pipeline
 ENTRYPOINT ["python", "run_pipeline.py"]
