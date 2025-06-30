@@ -34,8 +34,9 @@ This implementation uses **selective symlinks** to persist only data directories
 │   │   ├── sarima_params/
 │   │   └── time_moe_cache/
 │   └── predictions/
-└── scraping/
-    └── scraped_data/
+├── scraping/
+│   └── scraped_data/
+└── logs/
 ```
 
 ## Benefits

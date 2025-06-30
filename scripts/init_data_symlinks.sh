@@ -85,6 +85,7 @@ ensure_afs_dir "$AFS_BASE/modelling/cache/sarima_params"
 ensure_afs_dir "$AFS_BASE/modelling/cache/time_moe_cache"
 ensure_afs_dir "$AFS_BASE/modelling/predictions"
 ensure_afs_dir "$AFS_BASE/scraping/scraped_data"
+ensure_afs_dir "$AFS_BASE/logs"
 
 # Create selective symlinks for data directories ONLY
 log "Creating selective symlinks for data directories..."
@@ -113,6 +114,12 @@ create_data_symlink \
     "$AFS_BASE/scraping/scraped_data" \
     "Scraping Data"
 
+# Logs symlink
+create_data_symlink \
+    "$APP_BASE/logs" \
+    "$AFS_BASE/logs" \
+    "Logs"
+
 # Validation summary
 log "Symlink validation summary:"
 log "=========================="
@@ -122,6 +129,7 @@ symlinks=(
     "$APP_BASE/modelling/cache"
     "$APP_BASE/modelling/predictions"
     "$APP_BASE/scraping/scraped_data"
+    "$APP_BASE/logs"
 )
 
 all_good=true

@@ -34,8 +34,9 @@ This implementation uses a **selective symlinks approach** where only data direc
 │   │   ├── sarima_params/
 │   │   └── time_moe_cache/
 │   └── predictions/
-└── scraping/
-    └── scraped_data/
+├── scraping/
+│   └── scraped_data/
+└── logs/
 ```
 
 ## Key Benefits
@@ -94,6 +95,7 @@ The `scripts/init_data_symlinks.sh` script automatically:
    - `modelling/cache` → `/mnt/fileshare/modelling/cache`
    - `modelling/predictions` → `/mnt/fileshare/modelling/predictions`
    - `scraping/scraped_data` → `/mnt/fileshare/scraping/scraped_data`
+   - `logs` → `/mnt/fileshare/logs`
 5. **Validates** symlinks and write access
 
 ### Container Lifecycle
@@ -165,6 +167,7 @@ docker-compose run --rm financial-forecasting
 # Check local file share
 ls -la local_fileshare/modelling/predictions/
 ls -la local_fileshare/scraping/scraped_data/
+ls -la local_fileshare/logs/
 ```
 
 ## Migration from Previous Implementation

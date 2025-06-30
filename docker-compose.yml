@@ -16,8 +16,6 @@ services:
     volumes:
       # Mount local file share simulation for development
       - ./local_fileshare:/mnt/fileshare
-      # Optional: Mount logs for debugging (source code stays in container)
-      - ./logs:/app/logs
 
     restart: on-failure
     command: ["--log-level", "INFO"]

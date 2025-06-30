@@ -380,7 +380,8 @@ def verify_symlinks():
         "forecasting/data",
         "modelling/cache",
         "modelling/predictions", 
-        "scraping/scraped_data"
+        "scraping/scraped_data",
+        "logs"
     ]
     
     all_good = True
