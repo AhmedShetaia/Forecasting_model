@@ -52,6 +52,7 @@ jobs:
 
 
     - name: Run Pipeline using native az CLI
+      if: steps.changes.outputs.build_needed == 'true'
       run: |
         export AZURE_CORE_NO_COLOR="true"
         export MSAL_PY_CACHE_DISABLE=1
