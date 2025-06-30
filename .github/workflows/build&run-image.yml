@@ -34,7 +34,7 @@ jobs:
     - name: Check if rebuild is needed
       id: changes
       run: |
-        git fetch origin main --depth=2
+        git fetch origin master --depth=2
         CHANGED=$(git diff --name-only HEAD HEAD~1 | grep -E '(^Dockerfile|^src/|^requirements.txt)' || true)
         if [ -z "$CHANGED" ]; then
           echo "No relevant changes detected. Skipping build."
