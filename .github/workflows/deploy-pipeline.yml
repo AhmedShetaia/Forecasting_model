@@ -23,9 +23,16 @@ jobs:
         
     - name: Run Pipeline Container
       uses: azure/CLI@v2
+      env:
+        AZURE_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+        AZURE_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+        AZURE_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
       with:
         azcliversion: 2.61.0
         inlineScript: |
+          # Login explicitly to avoid cache issues
+          az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
+          
           # Get storage key
           STORAGE_ACCOUNT_KEY=$(az storage account keys list \
             --resource-group ${{ env.RESOURCE_GROUP }} \
