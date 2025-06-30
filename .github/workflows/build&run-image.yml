@@ -26,7 +26,7 @@ jobs:
         
     - name: Build with Azure Container Registry Tasks
       env:
-        ACR_NAME: forecastsa070369
+        ACR_NAME: forecastacr070369
       run: |
         az acr build \
           --registry $ACR_NAME \
