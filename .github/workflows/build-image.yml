@@ -26,17 +26,20 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
         
-    - name: Build and push Docker image
+    - name: Build with Azure Container Registry Tasks (with caching)
+      env:
+        ACR_NAME: forecastsa070369
       run: |
-        # Pull previous image for cache
-        docker pull ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest || true
-        
-        # Build with cache from previous image
-        docker build --cache-from=${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
-        docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest
+        az acr build \
+          --registry $ACR_NAME \
+          --image financial-forecasting:latest \
+          --file Dockerfile \
+          --context . \
+          --cache-from type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
+          --cache-to type=inline
         
     - name: Azure Login
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         

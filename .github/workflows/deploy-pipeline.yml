@@ -30,6 +30,9 @@ jobs:
       with:
         azcliversion: 2.61.0
         inlineScript: |
+          # Workaround MSAL cache issue by removing corrupted file
+          rm -f ~/.azure/msal_token_cache.bin
+
           # Login explicitly to avoid cache issues
           az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
           
