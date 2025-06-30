@@ -59,26 +59,34 @@ jobs:
           --cpu 1 --memory 4 --restart-policy Never \
           --location "${{ secrets.AZURE_LOCATION }}"
 
-        echo "📡 Streaming container logs..."
-
         while true; do
-          STATE=$(az container show \
-            --resource-group "${{ env.RESOURCE_GROUP }}" \
-            --name "$CONTAINER_NAME" \
-            --query "instanceView.state" -o tsv)
-
-          echo "🟢 Container state: $STATE"
-
-          # Stream logs incrementally every 20s
-          az container logs --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" || echo "(No logs yet)"
-
-          if [[ "$STATE" == "Succeeded" || "$STATE" == "Failed" || "$STATE" == "Terminated" ]]; then
-            echo "✅ Container has completed with state: $STATE"
+          STATE=$(az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
+          echo "State: $STATE"
+          if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
             break
           fi
+          sleep 30
+        done
 
-          sleep 20
-        done  
+        az container logs --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" || echo "No logs"
+
+        LATEST_LOG=$(az storage file list \
+          --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --account-key "$STORAGE_ACCOUNT_KEY" \
+          --share-name "${{ env.FILE_SHARE_NAME }}" \
+          --query "[?starts_with(name, 'pipeline_')].name" -o tsv | tail -1)
+
+        if [ -n "$LATEST_LOG" ]; then
+          az storage file download \
+            --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+            --account-key "$STORAGE_ACCOUNT_KEY" \
+            --share-name "${{ env.FILE_SHARE_NAME }}" \
+            --path "$LATEST_LOG" \
+            --dest ./pipeline.log
+          echo "=== PIPELINE LOG ==="
+          cat ./pipeline.log
+          echo "=== END LOG ==="
+        fi
 
         az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --yes
 
