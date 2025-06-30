@@ -14,71 +14,82 @@ env:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Login to Azure
+    - name: Checkout code (required for Git context)
+      uses: actions/checkout@v4
+
+    - name: Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-        
-    - name: Run Pipeline Container
-      uses: azure/CLI@v2
-      env:
-        AZURE_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-        AZURE_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-        AZURE_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-      with:
-        azcliversion: 2.61.0
-        inlineScript: |
-          # Workaround MSAL cache issue by removing corrupted file
-          rm -f ~/.azure/msal_token_cache.bin
 
-          # Login explicitly to avoid cache issues
-          az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
-          
-          # Get storage key
-          STORAGE_ACCOUNT_KEY=$(az storage account keys list \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --account-name ${{ env.STORAGE_ACCOUNT_NAME }} \
-            --query "[0].value" -o tsv)
-          
-          # Clean up old containers
-          az container list --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv | \
-            xargs -r -I {} az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name {} --yes
-          
-          # Create container
-          CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
-          
-          az container create \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name "$CONTAINER_NAME" \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
-            --registry-login-server ${{ secrets.ACR_LOGIN_SERVER }} \
-            --registry-username ${{ secrets.ACR_USERNAME }} \
-            --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --environment-variables \
-              FRED_API_KEY=${{ secrets.FRED_API_KEY }} \
-              AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-              CONTAINER_NAME=${{ env.CONTAINER_NAME }} \
-            --azure-file-volume-account-name ${{ env.STORAGE_ACCOUNT_NAME }} \
-            --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
-            --azure-file-volume-share-name ${{ env.FILE_SHARE_NAME }} \
-            --azure-file-volume-mount-path /mnt/fileshare \
-            --cpu 1 --memory 4 --restart-policy Never \
-            --location ${{ secrets.AZURE_LOCATION }}
-          
-          # Wait for completion
-          while true; do
-            STATE=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
-            echo "State: $STATE"
-            
-            if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
-              break
-            fi
-            sleep 30
-          done
-          
-          # Show logs and cleanup
-          az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" || echo "No logs"
-          az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name "$CONTAINER_NAME" --yes
+    - name: Run Pipeline using native az CLI
+      run: |
+        export AZURE_CORE_NO_COLOR="true"
+        export MSAL_PY_CACHE_DISABLE=1
+
+        STORAGE_ACCOUNT_KEY=$(az storage account keys list \
+          --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --query "[0].value" -o tsv)
+
+        az container list --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv | \
+          xargs -r -I {} az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name {} --yes
+
+        CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
+
+        az container create \
+          --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --name "$CONTAINER_NAME" \
+          --image "${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest" \
+          --registry-login-server "${{ secrets.ACR_LOGIN_SERVER }}" \
+          --registry-username "${{ secrets.ACR_USERNAME }}" \
+          --registry-password "${{ secrets.ACR_PASSWORD }}" \
+          --os-type Linux \
+          --environment-variables \
+            FRED_API_KEY="${{ secrets.FRED_API_KEY }}" \
+            AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+            CONTAINER_NAME="${{ env.CONTAINER_NAME }}" \
+          --azure-file-volume-account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
+          --azure-file-volume-share-name "${{ env.FILE_SHARE_NAME }}" \
+          --azure-file-volume-mount-path /mnt/fileshare \
+          --cpu 1 --memory 4 --restart-policy Never \
+          --location "${{ secrets.AZURE_LOCATION }}"
+
+        while true; do
+          STATE=$(az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
+          echo "State: $STATE"
+          if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
+            break
+          fi
+          sleep 30
+        done
+
+        az container logs --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" || echo "No logs"
+
+        LATEST_LOG=$(az storage file list \
+          --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --account-key "$STORAGE_ACCOUNT_KEY" \
+          --share-name "${{ env.FILE_SHARE_NAME }}" \
+          --query "[?starts_with(name, 'pipeline_')].name" -o tsv | tail -1)
+
+        if [ -n "$LATEST_LOG" ]; then
+          az storage file download \
+            --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+            --account-key "$STORAGE_ACCOUNT_KEY" \
+            --share-name "${{ env.FILE_SHARE_NAME }}" \
+            --path "$LATEST_LOG" \
+            --dest ./pipeline.log
+          echo "=== PIPELINE LOG ==="
+          cat ./pipeline.log
+          echo "=== END LOG ==="
+        fi
+
+        az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --yes
+
+        if [ "$STATE" != "Succeeded" ]; then
+          exit 1
+        fi
