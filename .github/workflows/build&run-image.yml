@@ -41,8 +41,6 @@ jobs:
       with:
         azcliversion: 2.53.0
         inlineScript: |
-          # Clear authentication cache
-          az account clear || true
           
           # Get storage key
           STORAGE_ACCOUNT_KEY=$(az storage account keys list \
