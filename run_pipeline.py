@@ -335,21 +335,17 @@ def upload_results_to_blob(container_name, output_files):
                 # Extract filename for blob name
                 blob_name = os.path.basename(file_path)
                 
-                # Add timestamp prefix to avoid overwrites
-                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-                blob_name_with_timestamp = f"{timestamp}_{blob_name}"
-                
                 # Upload to blob storage
                 success = upload_to_blob_storage(
                     file_path=file_path,
-                    blob_name=blob_name_with_timestamp,
+                    blob_name=blob_name,
                     container_name=container_name,
                     connection_string=connection_string
                 )
                 
                 if success:
                     upload_count += 1
-                    logger.info(f"✓ Uploaded: {file_path} -> {blob_name_with_timestamp}")
+                    logger.info(f"✓ Uploaded: {file_path} -> {blob_name}")
                 else:
                     logger.error(f"✗ Failed to upload: {file_path}")
                     
