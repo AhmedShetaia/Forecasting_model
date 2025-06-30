@@ -31,92 +31,87 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Pull existing image for cache (if exists)
       run: |
         docker pull ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest || true
 
-    - name: Build and push Docker image using cache
+    - name: Build and push Docker image using Buildx
       run: |
-        docker build \
-          --cache-from ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
-          -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
-        docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest
+        docker buildx build \
+          --cache-from=type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
+          --cache-to=type=inline \
+          --tag ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
+          --push \
+          .
 
-    - name: Run Pipeline
-      uses: azure/CLI@v2
-      with:
-        azcliversion: 2.53.0
-        inlineScript: |
-          export AZURE_CORE_NO_COLOR="true"
-          export MSAL_PY_CACHE_DISABLE=1  # 💥 Disable MSAL cache to avoid NormalizedResponse error
+    - name: Run Pipeline using native az CLI
+      run: |
+        export AZURE_CORE_NO_COLOR="true"
+        export MSAL_PY_CACHE_DISABLE=1
 
-          # Get storage key
-          STORAGE_ACCOUNT_KEY=$(az storage account keys list \
-            --resource-group "${{ env.RESOURCE_GROUP }}" \
-            --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
-            --query "[0].value" -o tsv)
+        STORAGE_ACCOUNT_KEY=$(az storage account keys list \
+          --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --query "[0].value" -o tsv)
 
-          # Clean up old containers
-          az container list --resource-group "${{ env.RESOURCE_GROUP }}" \
-            --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv | \
-            xargs -r -I {} az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name {} --yes
+        az container list --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --query "[?starts_with(name, 'forecast-pipeline-')].name" -o tsv | \
+          xargs -r -I {} az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name {} --yes
 
-          # Create container
-          CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
+        CONTAINER_NAME="forecast-pipeline-$(date +%Y%m%d-%H%M%S)"
 
-          az container create \
-            --resource-group "${{ env.RESOURCE_GROUP }}" \
-            --name "$CONTAINER_NAME" \
-            --image "${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest" \
-            --registry-login-server "${{ secrets.ACR_LOGIN_SERVER }}" \
-            --registry-username "${{ secrets.ACR_USERNAME }}" \
-            --registry-password "${{ secrets.ACR_PASSWORD }}" \
-            --environment-variables \
-              FRED_API_KEY="${{ secrets.FRED_API_KEY }}" \
-              AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-              CONTAINER_NAME="${{ env.CONTAINER_NAME }}" \
-            --azure-file-volume-account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
-            --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
-            --azure-file-volume-share-name "${{ env.FILE_SHARE_NAME }}" \
-            --azure-file-volume-mount-path /mnt/fileshare \
-            --cpu 1 --memory 4 --restart-policy Never \
-            --location "${{ secrets.AZURE_LOCATION }}"
+        az container create \
+          --resource-group "${{ env.RESOURCE_GROUP }}" \
+          --name "$CONTAINER_NAME" \
+          --image "${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest" \
+          --registry-login-server "${{ secrets.ACR_LOGIN_SERVER }}" \
+          --registry-username "${{ secrets.ACR_USERNAME }}" \
+          --registry-password "${{ secrets.ACR_PASSWORD }}" \
+          --environment-variables \
+            FRED_API_KEY="${{ secrets.FRED_API_KEY }}" \
+            AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+            CONTAINER_NAME="${{ env.CONTAINER_NAME }}" \
+          --azure-file-volume-account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --azure-file-volume-account-key "$STORAGE_ACCOUNT_KEY" \
+          --azure-file-volume-share-name "${{ env.FILE_SHARE_NAME }}" \
+          --azure-file-volume-mount-path /mnt/fileshare \
+          --cpu 1 --memory 4 --restart-policy Never \
+          --location "${{ secrets.AZURE_LOCATION }}"
 
-          # Wait for completion
-          while true; do
-            STATE=$(az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
-            echo "State: $STATE"
-            if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
-              break
-            fi
-            sleep 30
-          done
+        while true; do
+          STATE=$(az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
+          echo "State: $STATE"
+          if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "Failed" ] || [ "$STATE" = "Terminated" ]; then
+            break
+          fi
+          sleep 30
+        done
 
-          # Show logs
-          az container logs --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" || echo "No logs"
+        az container logs --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" || echo "No logs"
 
-          # Download pipeline log
-          LATEST_LOG=$(az storage file list \
+        LATEST_LOG=$(az storage file list \
+          --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
+          --account-key "$STORAGE_ACCOUNT_KEY" \
+          --share-name "${{ env.FILE_SHARE_NAME }}" \
+          --query "[?starts_with(name, 'pipeline_')].name" -o tsv | tail -1)
+
+        if [ -n "$LATEST_LOG" ]; then
+          az storage file download \
             --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
             --account-key "$STORAGE_ACCOUNT_KEY" \
             --share-name "${{ env.FILE_SHARE_NAME }}" \
-            --query "[?starts_with(name, 'pipeline_')].name" -o tsv | tail -1)
+            --path "$LATEST_LOG" \
+            --dest ./pipeline.log
+          echo "=== PIPELINE LOG ==="
+          cat ./pipeline.log
+          echo "=== END LOG ==="
+        fi
 
-          if [ -n "$LATEST_LOG" ]; then
-            az storage file download \
-              --account-name "${{ env.STORAGE_ACCOUNT_NAME }}" \
-              --account-key "$STORAGE_ACCOUNT_KEY" \
-              --share-name "${{ env.FILE_SHARE_NAME }}" \
-              --path "$LATEST_LOG" \
-              --dest ./pipeline.log
-            echo "=== PIPELINE LOG ==="
-            cat ./pipeline.log
-            echo "=== END LOG ==="
-          fi
+        az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --yes
 
-          # Cleanup
-          az container delete --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --yes
-
-          if [ "$STATE" != "Succeeded" ]; then
-            exit 1
-          fi
+        if [ "$STATE" != "Succeeded" ]; then
+          exit 1
+        fi
