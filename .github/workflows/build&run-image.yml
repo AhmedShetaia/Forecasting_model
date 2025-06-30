@@ -18,15 +18,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Login to Azure Container Registry
-      uses: azure/docker-login@v1
-      with:
-        login-server: ${{ secrets.ACR_LOGIN_SERVER }}
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
         
-    - name: Build with Azure Container Registry Tasks (with caching)
+    - name: Build with Azure Container Registry Tasks
       env:
         ACR_NAME: forecastsa070369
       run: |
@@ -34,9 +27,7 @@ jobs:
           --registry $ACR_NAME \
           --image financial-forecasting:latest \
           --file Dockerfile \
-          --context . \
-          --cache-from type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest \
-          --cache-to type=inline
+        .
         
     - name: Azure Login
       uses: azure/login@v2
