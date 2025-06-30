@@ -59,6 +59,9 @@ jobs:
           --cpu 1 --memory 4 --restart-policy Never \
           --location "${{ secrets.AZURE_LOCATION }}"
 
+        az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.events" -o json
+
+
         while true; do
           STATE=$(az container show --resource-group "${{ env.RESOURCE_GROUP }}" --name "$CONTAINER_NAME" --query "instanceView.state" -o tsv)
           echo "State: $STATE"
