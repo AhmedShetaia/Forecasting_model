@@ -31,10 +31,14 @@ jobs:
         docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
         docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest
         
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
     - name: Run Pipeline
       uses: azure/CLI@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
         azcliversion: 2.53.0
         inlineScript: |
           # Clear authentication cache
