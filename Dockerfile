@@ -4,22 +4,24 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for potential compilation needs
+# Install system dependencies for potential compilation needs (least changing)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
+# Copy requirements and install dependencies (changes occasionally)
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
+# Copy scripts first (changes less frequently than main code)
+COPY scripts/init_data_symlinks.sh /usr/local/bin/init_data_symlinks.sh
+
+# Copy the application code (most frequently changing - placed last)
 COPY . .
 
-# Copy selective symlink initialization script
-COPY scripts/init_data_symlinks.sh /usr/local/bin/init_data_symlinks.sh
+# Make scripts executable
 RUN chmod +x /usr/local/bin/init_data_symlinks.sh
 
 # Set environment variables

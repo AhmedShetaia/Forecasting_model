@@ -28,7 +28,11 @@ jobs:
         
     - name: Build and push Docker image
       run: |
-        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
+        # Pull previous image for cache
+        docker pull ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest || true
+        
+        # Build with cache from previous image
+        docker build --cache-from=${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest -t ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest .
         docker push ${{ secrets.ACR_LOGIN_SERVER }}/financial-forecasting:latest
         
     - name: Azure Login
